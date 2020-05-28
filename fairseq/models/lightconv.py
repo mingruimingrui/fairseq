@@ -722,12 +722,27 @@ def base_architecture(args):
 
     args.encoder_kernel_size_list = getattr(args, 'encoder_kernel_size_list', [3, 7, 15, 31, 31, 31, 31])
     args.decoder_kernel_size_list = getattr(args, 'decoder_kernel_size_list', [3, 7, 15, 31, 31, 31])
-    if len(args.encoder_kernel_size_list) == 1:
-        args.encoder_kernel_size_list = args.encoder_kernel_size_list * args.encoder_layers
-    if len(args.decoder_kernel_size_list) == 1:
-        args.decoder_kernel_size_list = args.decoder_kernel_size_list * args.decoder_layers
-    assert len(args.encoder_kernel_size_list) == args.encoder_layers, "encoder_kernel_size_list doesn't match encoder_layers"
-    assert len(args.decoder_kernel_size_list) == args.decoder_layers, "decoder_kernel_size_list doesn't match decoder_layers"
+
+    def reformat_kernel_size_list(kernel_size_list, target_size):
+        if len(kernel_size_list) == 1:
+            kernel_size_list = kernel_size_list * target_size
+        if len(kernel_size_list) < target_size:
+            assert kernel_size_list > 0, 'Kernel size list should not be empty'
+            kernel_size_list += \
+                kernel_size_list[-1] * (target_size - len(kernel_size_list))
+        if len(kernel_size_list) > target_size:
+            kernel_size_list = kernel_size_list[:target_size]
+        return kernel_size_list
+
+    args.encoder_kernel_size_list = reformat_kernel_size_list(
+        args.encoder_kernel_size_list, args.encoder_layers)
+    args.decoder_kernel_size_list = reformat_kernel_size_list(
+        args.decoder_kernel_size_list, args.decoder_layers)
+    assert len(args.encoder_kernel_size_list) == args.encoder_layers, \
+        "encoder_kernel_size_list doesn't match encoder_layers"
+    assert len(args.decoder_kernel_size_list) == args.decoder_layers, \
+        "decoder_kernel_size_list doesn't match decoder_layers"
+
     args.encoder_glu = getattr(args, 'encoder_glu', True)
     args.decoder_glu = getattr(args, 'decoder_glu', True)
     args.input_dropout = getattr(args, 'input_dropout', 0.1)
